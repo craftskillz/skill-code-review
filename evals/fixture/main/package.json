@@ -1,0 +1,1 @@
+{ "name": "atelier-api-exemple", "private": true, "type": "commonjs", "scripts": { "test": "node --test" } }

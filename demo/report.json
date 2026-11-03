@@ -1,0 +1,384 @@
+{
+  "schema_version": 2,
+  "title": "Revue de feature/orders-list",
+  "repository": "atelier-api-exemple",
+  "headline": "Ne pas fusionner en l'état : une décision de contrôle d'accès (P1) est attendue sur le résumé de commande, et deux défauts de pagination sont corrigés sur une branche à relire.",
+  "demo": true,
+  "demo_note": "Exécution réelle de la skill le 2 novembre 2026, sur un dépôt d'exemple au contrat fictif et aux défauts volontaires.",
+  "status": "completed",
+  "scope": {
+    "base": "main",
+    "head": "feature/orders-list",
+    "base_sha": "fac7f15e0d434204b68e121e7ef50b1e5c37c2e8",
+    "head_sha": "8ad162ef2521d4aaed4bc65843f6cdf2d1ccfd9b"
+  },
+  "fix_branch": {
+    "name": "review-fixes/orders-list",
+    "head_sha": "dbf405a6b64c2ee9b3ba494c232e6b5080f71cf6"
+  },
+  "awareness": {
+    "summary": "La branche ajoute la liste paginée des commandes, leur résumé, leur facture et un calcul de total avec remise. La liste et la facture ne montrent que les commandes de la personne connectée, mais le résumé montre le montant de n'importe quelle commande : c'est le point à trancher. La pagination s'écartait du contrat ; elle est corrigée sur la branche dédiée, pas sur la branche relue.",
+    "changes": [
+      {
+        "area": "Liste des commandes",
+        "before": "Absente de main. Sur feature/orders-list : pages comptées à partir de 0, valeurs invalides acceptées.",
+        "after": "Sur review-fixes/orders-list : la page 1 contient les premiers éléments, et une valeur invalide de limit ou page lève une RangeError."
+      },
+      {
+        "area": "Résumé de commande",
+        "before": "Absent de main.",
+        "after": "Sur les deux branches : retourne le montant de toute commande, sans contrôle du propriétaire. Correctif proposé, non appliqué."
+      },
+      {
+        "area": "Facture",
+        "before": "Absente de main.",
+        "after": "Réservée à la personne propriétaire, via le contrôle existant."
+      },
+      {
+        "area": "Total avec remise",
+        "before": "Absent de main.",
+        "after": "Disponible en fonction exportée. Le résumé et la facture ne transmettent pas de remise."
+      }
+    ],
+    "watch": [
+      "Le contrat impose le rejet sans en fixer le mécanisme : RangeError est un choix de la correction, à confirmer. Une couche HTTP devra la traduire en réponse d'erreur.",
+      "Les paramètres en texte à zéros initiaux ('005') sont acceptés et valent 5 : le contrat ne tranche pas et aucun test ne le couvre.",
+      "Le dépôt ne contient aucune route : l'exposition réelle de ces fonctions dépend d'un branchement non relu."
+    ]
+  },
+  "agents": [
+    {
+      "id": "review-behavior",
+      "label": "Comportement",
+      "requested_model": "claude-opus-5-5",
+      "observed_model": "claude-opus-5-5",
+      "status": "completed",
+      "summary": "Cinq constats : résumé sans contrôle, base de page, validation, remise invalide, arrondi."
+    },
+    {
+      "id": "review-tests",
+      "label": "Tests",
+      "requested_model": "claude-sonnet-5-5",
+      "observed_model": "claude-sonnet-5-5",
+      "status": "completed",
+      "summary": "Six constats sur les scénarios non couverts et les assertions faibles, dont quatre recoupent le comportement."
+    },
+    {
+      "id": "review-challenger",
+      "label": "Contre-vérification",
+      "requested_model": "claude-opus-5-5",
+      "observed_model": "claude-opus-5-5",
+      "status": "completed",
+      "summary": "Les 7 constats sont confirmés, et les 2 corrections approuvées."
+    },
+    {
+      "id": "fix-finding",
+      "label": "Correction",
+      "requested_model": "claude-sonnet-5-5",
+      "observed_model": "claude-sonnet-5-5",
+      "status": "completed",
+      "summary": "R-002 et R-003 corrigés en un commit chacun, sans blocage."
+    }
+  ],
+  "findings": [
+    {
+      "id": "R-001",
+      "severity": "P1",
+      "title": "Le résumé de commande ne contrôle pas le propriétaire",
+      "file": "src/orders.js",
+      "line": 15,
+      "trigger": "Une personne connectée demande le résumé d'une commande d'un tiers : getOrderSummary(orders, { id: 'alice' }, 2), la commande 2 appartenant à bob.",
+      "impact": "Le montant de la commande d'un tiers lui est retourné, contrairement au contrat (« quelle que soit la route »). Un identifiant inconnu lève une TypeError au lieu du refus habituel, ce qui révèle quelles commandes existent. P1 : divulgation démontrée de données d'un tiers.",
+      "evidence": "src/orders.js:15 cherche par le seul id et le paramètre user n'est jamais lu, alors que getOrder et getOrderInvoice passent par loadOwnedOrder (src/access.js:3-7). Exécution observée : {\"id\":2,\"totalCents\":3998} pour alice sur la commande 2 ; TypeError pour l'id 9999.",
+      "recommendation": "Charger la commande avec loadOwnedOrder, comme getOrderInvoice, et ajouter un test de refus.",
+      "reviewers": [
+        "review-behavior",
+        "review-tests"
+      ],
+      "sensitive": true,
+      "outcome": "human_decision",
+      "challenge": {
+        "verdict": "confirmed",
+        "reason": "src/orders.js:15-16 n'utilise ni user ni loadOwnedOrder, et aucun contrôle en amont n'existe dans le worktree."
+      },
+      "decision": {
+        "reason": "sensitive_area",
+        "question": "Faut-il appliquer le contrôle d'accès proposé au résumé de commande avant la fusion ?",
+        "options": [
+          {
+            "label": "Appliquer le correctif proposé",
+            "consequence": "Le résumé refuse les commandes tierces et inconnues avec ForbiddenError, comme la facture. Essayé dans une copie temporaire : 13 tests sur 13 réussis."
+          },
+          {
+            "label": "Retarder la fusion et faire le contrôle autrement",
+            "consequence": "La fonction reste non conforme au contrat tant que le contrôle n'est pas posé ; toute exposition du résumé divulgue des montants de tiers."
+          }
+        ],
+        "recommendation": "Appliquer le correctif proposé avant la fusion : il réutilise le contrôle existant et le contrat tranche la règle. La décision reste humaine parce qu'il s'agit d'un contrôle d'accès.",
+        "proposed_patch": "--- a/src/orders.js\n+++ b/src/orders.js\n function getOrderSummary(orders, user, id) {\n-  const order = orders.find((candidate) => candidate.id === id);\n+  const order = loadOwnedOrder(orders, user, id);\n   return { id: order.id, totalCents: orderTotalCents(order) };\n }\n+\n+// test/list.test.js\n+test('le résumé refuse une commande tierce ou inconnue', () => {\n+  assert.throws(() => getOrderSummary(orders, { id: 'alice' }, 2), ForbiddenError);\n+  assert.throws(() => getOrderSummary(orders, { id: 'alice' }, 9999), ForbiddenError);\n+  assert.strictEqual(getOrderSummary(orders, { id: 'alice' }, 1).totalCents, 1999);\n+});"
+      }
+    },
+    {
+      "id": "R-002",
+      "severity": "P2",
+      "title": "La pagination commence à 0 : la page 1 saute les premiers éléments",
+      "file": "src/orders.js",
+      "line": 9,
+      "trigger": "listOrders(orders, { id: 'alice' }, { page: 1 }).",
+      "impact": "Alice reçoit ses 3 dernières commandes au lieu des 20 premières, et un client qui part de la page 1 ne voit jamais les premiers éléments. P2 : liste fausse, sans exposition de données d'un tiers.",
+      "evidence": "src/orders.js:9 et 11 sur le commit relu : page vaut 0 par défaut et le décalage est page * limit, alors que le contrat veut la page 1 par défaut et contenant les premiers éléments. Le test existant ne vérifiait que la longueur.",
+      "recommendation": "Page 1 par défaut, décalage (page - 1) * limit, test vérifiant les identifiants.",
+      "reviewers": [
+        "review-behavior",
+        "review-tests"
+      ],
+      "sensitive": false,
+      "outcome": "fixed",
+      "challenge": {
+        "verdict": "confirmed",
+        "reason": "src/orders.js:9 et 11 donnent slice(20, 40) pour page=1, soit les ids 41, 43, 45, contre api.md qui exige les premiers éléments en page 1."
+      },
+      "fix": {
+        "commit": "da2a723646b00811ed843ba48ba8d0205209c61b",
+        "test": "test/list.test.js : « la pagination commence à la page 1 »",
+        "summary": "La page par défaut vaut 1 et le décalage devient (page - 1) * limit.",
+        "red": "ℹ tests 7\nℹ pass 6\nℹ fail 1\n✖ failing tests:\n\n✖ la pagination commence à la page 1 (0.675792ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  + actual - expected\n  \n    [\n  +   41,\n  +   43,\n  +   45\n  -   1,\n  -   3,\n  -   5,\n  -   7,\n  -   9,\n  -   11,\n  -   13,\n  -   15,\n  -   17,\n  -   19,\n  -   21,\n  -   23,\n  -   25,\n  -   27,\n  -   29,\n  -   31,\n  -   33,\n  -   35,\n  -   37,\n  -   39\n    ]\n  ",
+        "green": "✔ la pagination commence à la page 1 (0.333208ms)\nℹ tests 7\nℹ pass 7\nℹ fail 0",
+        "diff": "src/orders.js : `Number(query.page) || 0` devient `|| 1` ; `mine.slice(page * limit, page * limit + limit)` devient `mine.slice((page - 1) * limit, page * limit)`. test/list.test.js : un test ajouté.",
+        "review": {
+          "verdict": "approved",
+          "reason": "Le test échoue sur l'assertion de la page 1 avec les ids attendus de l'ancien calcul, le correctif traite la cause et le commit se limite au constat."
+        }
+      }
+    },
+    {
+      "id": "R-003",
+      "severity": "P2",
+      "title": "Les valeurs invalides de limit et page ne sont pas rejetées",
+      "file": "src/orders.js",
+      "line": 8,
+      "trigger": "limit=1000, 0, -5, 1.5 ou 'abc' ; page=0, -1, 1.5 ou 'abc'.",
+      "impact": "Aucun rejet : le plafond de 100 n'est pas appliqué et le résultat diffère silencieusement de la demande, sans que le client puisse détecter son erreur. P2 : écart au contrat, limité aux commandes de la personne.",
+      "evidence": "src/orders.js:8-9 sur le commit relu utilise Number(x) || défaut, sans bornes. Le contrat : « Toute autre valeur est rejetée ». Le mécanisme de rejet n'y est pas fixé.",
+      "recommendation": "Défaut uniquement si le paramètre est absent, erreur pour tout ce qui n'est pas un entier dans les bornes.",
+      "reviewers": [
+        "review-behavior",
+        "review-tests"
+      ],
+      "sensitive": false,
+      "outcome": "fixed",
+      "challenge": {
+        "verdict": "confirmed",
+        "reason": "src/orders.js:8-9 ne lève jamais d'erreur et aucune validation n'existe en amont ; api.md impose le rejet."
+      },
+      "fix": {
+        "commit": "dbf405a6b64c2ee9b3ba494c232e6b5080f71cf6",
+        "test": "test/list.test.js : « limit invalide est rejeté », « page invalide est rejetée », « bornes valides de limit et page texte acceptées »",
+        "summary": "parseIntParam valide limit (1 à 100, défaut 20) et page (à partir de 1, défaut 1) et lève une RangeError pour toute autre valeur. Les entiers en texte comme '2' restent acceptés.",
+        "red": "ℹ tests 10\nℹ pass 8\nℹ fail 2\n  AssertionError [ERR_ASSERTION]: Missing expected exception (RangeError): 1000\n  AssertionError [ERR_ASSERTION]: Missing expected exception (RangeError): 0",
+        "green": "✔ limit invalide est rejeté (0.599167ms)\n✔ page invalide est rejetée (0.108334ms)\n✔ bornes valides de limit et page texte acceptées (0.088584ms)\nℹ tests 10\nℹ pass 10\nℹ fail 0",
+        "diff": "src/orders.js : ajout de parseIntParam, utilisée par listOrders pour limit et page. test/list.test.js : trois tests ajoutés.",
+        "review": {
+          "verdict": "approved",
+          "reason": "Les échecs viennent de l'absence de rejet, le correctif applique les bornes du contrat et le commit ne contient rien d'autre. Le type RangeError n'est pas tranché par le contrat et reste à confirmer."
+        }
+      }
+    },
+    {
+      "id": "R-004",
+      "severity": "P3",
+      "title": "Une remise invalide produit un total NaN, négatif ou majoré",
+      "file": "src/orders.js",
+      "line": 27,
+      "trigger": "orderTotalCents(order, 'abc'), orderTotalCents(order, 150) ou orderTotalCents(order, -10).",
+      "impact": "Un montant faux sans aucune erreur. P3 : aucun appelant du périmètre ne transmet de remise, l'impact reste potentiel via la fonction exportée.",
+      "evidence": "src/orders.js:27 n'effectue aucune validation. Exécution observée sur une ligne de 1000 centimes : NaN, -500 et 1100. Le contrat impose des centimes entiers, mais ne fixe pas la plage de remise.",
+      "recommendation": "Décider la plage acceptée, puis rejeter toute remise hors de cette plage.",
+      "reviewers": [
+        "review-behavior"
+      ],
+      "sensitive": false,
+      "outcome": "human_decision",
+      "challenge": {
+        "verdict": "confirmed",
+        "reason": "src/orders.js:24-29 ne valide pas la remise. Le contrat ne fixe ni le domaine de la remise, ni le traitement d'une valeur invalide : cela relève de l'équipe."
+      },
+      "decision": {
+        "reason": "business_ambiguity",
+        "question": "Quelles remises orderTotalCents doit-elle accepter, et que faire des autres ?",
+        "options": [
+          {
+            "label": "Accepter de 0 à 100 et lever une erreur sinon",
+            "consequence": "Un montant faux devient impossible ; il faut inscrire la règle au contrat et gérer l'erreur chez les appelants."
+          },
+          {
+            "label": "Laisser la validation aux appelants",
+            "consequence": "La fonction reste simple, mais un appelant qui oublie le contrôle obtient un total faux sans erreur."
+          }
+        ],
+        "recommendation": "Accepter de 0 à 100 et rejeter le reste : un total NaN ou négatif n'a pas d'usage connu. À confirmer, car le contrat ne l'écrit pas."
+      }
+    },
+    {
+      "id": "R-005",
+      "severity": "P3",
+      "title": "L'arrondi de la remise par ligne fait dépendre le total de la répartition",
+      "file": "src/orders.js",
+      "line": 27,
+      "trigger": "Une remise sur plusieurs lignes tombant sur un demi-centime : 3 lignes de 5 centimes à 10 %, contre une ligne de 15 centimes à 10 %.",
+      "impact": "Pour un même brut, le total diffère : 15 contre 14 centimes. L'écart peut apparaître lors d'un rapprochement comptable. P3 : aucun appelant du périmètre ne transmet de remise aujourd'hui.",
+      "evidence": "src/orders.js:27 arrondit dans le reduce. Exécution observée : 15 et 14. Le contrat dit : « Ce contrat ne fixe pas de règle d'arrondi pour les remises ». Le code ne viole donc aucune règle écrite.",
+      "recommendation": "Faire trancher la règle, l'inscrire au contrat, puis la figer par un test à plusieurs lignes.",
+      "reviewers": [
+        "review-behavior",
+        "review-tests"
+      ],
+      "sensitive": false,
+      "outcome": "human_decision",
+      "challenge": {
+        "verdict": "confirmed",
+        "reason": "src/orders.js:27 arrondit ligne par ligne et le seul test porte sur une ligne. La règle à retenir relève de l'équipe, api.md ne la fixe pas."
+      },
+      "decision": {
+        "reason": "business_ambiguity",
+        "question": "La remise doit-elle être arrondie par ligne ou sur le total de la commande ?",
+        "options": [
+          {
+            "label": "Arrondir par ligne (code actuel)",
+            "consequence": "Chaque ligne affichée reste cohérente avec le total, mais celui-ci dépend de la répartition en lignes."
+          },
+          {
+            "label": "Arrondir sur le total",
+            "consequence": "Le total ne dépend plus de la répartition, mais la somme des lignes affichées peut différer du total."
+          }
+        ],
+        "recommendation": "Aucune option ne s'impose techniquement : suivre la règle comptable de l'équipe, puis l'inscrire au contrat."
+      }
+    },
+    {
+      "id": "R-006",
+      "severity": "P3",
+      "title": "Aucun test ne couvre le refus d'une facture de commande tierce",
+      "file": "test/list.test.js",
+      "line": 14,
+      "trigger": "getOrderInvoice(orders, { id: 'bob' }, 1), la commande 1 appartenant à alice.",
+      "impact": "Remplacer le contrôle de getOrderInvoice par une simple recherche ne ferait échouer aucun test. P3 : scénario non couvert, sans bug actuel ; le contrôle partagé est testé via getOrder.",
+      "evidence": "test/list.test.js:14-17 ne teste que la propriétaire, et test/orders.test.js ne teste le refus que via getOrder. getOrderInvoice appelle bien loadOwnedOrder.",
+      "recommendation": "Ajouter un test de refus pour une commande tierce.",
+      "reviewers": [
+        "review-tests"
+      ],
+      "sensitive": true,
+      "outcome": "human_decision",
+      "challenge": {
+        "verdict": "confirmed",
+        "reason": "getOrderInvoice n'est testé qu'avec la propriétaire, en test/list.test.js:14-17 ; le code applique le contrôle, ce qui est cohérent avec l'absence d'affirmation de bug."
+      },
+      "decision": {
+        "reason": "sensitive_area",
+        "question": "Faut-il ajouter ce test de non-régression du contrôle d'accès à la facture ?",
+        "options": [
+          {
+            "label": "Ajouter le test proposé",
+            "consequence": "Une régression du contrôle de la facture serait détectée. Essayé dans une copie temporaire : il passe, le code étant correct."
+          },
+          {
+            "label": "Ne rien ajouter",
+            "consequence": "Le contrôle de la facture reste protégé uniquement par la relecture."
+          }
+        ],
+        "recommendation": "Ajouter le test : coût très faible sur un contrôle d'accès. Il ne peut pas échouer aujourd'hui, donc il sort du circuit de correction automatique.",
+        "proposed_patch": "test('la facture refuse une commande tierce', () => {\n  assert.throws(() => getOrderInvoice(orders, { id: 'bob' }, 1), ForbiddenError);\n});"
+      }
+    },
+    {
+      "id": "R-007",
+      "severity": "P3",
+      "title": "Le test d'isolation de la liste réussirait sur une liste vide",
+      "file": "test/list.test.js",
+      "line": 10,
+      "trigger": "listOrders renverrait [] pour bob.",
+      "impact": "`every` est vrai sur un tableau vide : une liste vide propre à bob passerait tous les tests. P3 : sur les données actuelles, le test exerce 20 commandes et détecterait une fuite.",
+      "evidence": "test/list.test.js:10-12 ne contient que assert.ok(liste.every(...)), sans contrôle de taille ; bob possède 22 commandes dans src/store.js.",
+      "recommendation": "Ajouter une assertion de non-vacuité.",
+      "reviewers": [
+        "review-tests"
+      ],
+      "sensitive": true,
+      "outcome": "human_decision",
+      "challenge": {
+        "verdict": "confirmed",
+        "reason": "test/list.test.js:10-12 ne vérifie pas la taille et every renvoie true sur un tableau vide."
+      },
+      "decision": {
+        "reason": "sensitive_area",
+        "question": "Faut-il renforcer ce test d'isolation des commandes ?",
+        "options": [
+          {
+            "label": "Ajouter l'assertion proposée",
+            "consequence": "Le test ne peut plus réussir sur une liste vide. Essayé dans une copie temporaire : il passe."
+          },
+          {
+            "label": "Laisser le test tel quel",
+            "consequence": "Il détecte toujours une fuite sur les données actuelles, mais pas une liste vide propre à bob."
+          }
+        ],
+        "recommendation": "Ajouter l'assertion : une ligne, sans changement de code. Le test porte sur le contrôle d'accès, la décision reste donc humaine.",
+        "proposed_patch": "  const list = listOrders(orders, { id: 'bob' });\n  assert.ok(list.length > 0);\n  assert.ok(list.every((order) => order.ownerId === 'bob'));"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "label": "Suite complète sur review-fixes/orders-list",
+      "kind": "test",
+      "status": "passed",
+      "detail": "npm test sur dbf405a : tests 10, pass 10, fail 0."
+    },
+    {
+      "label": "Suite complète sur le commit relu",
+      "kind": "test",
+      "status": "passed",
+      "detail": "npm test sur 8ad162e : tests 6, pass 6, fail 0. Les défauts relevés passaient donc inaperçus."
+    },
+    {
+      "label": "Rejeu des tests sans correctif",
+      "kind": "test",
+      "status": "passed",
+      "detail": "Rejoués par l'orchestrateur dans une copie temporaire, avec src/orders.js du commit précédent : R-002 1 échec sur 7, R-003 2 échecs sur 10, pour les raisons attendues. Sorties brutes : red-R-002.txt et red-R-003.txt."
+    },
+    {
+      "label": "Correctif et tests proposés (R-001, R-006, R-007)",
+      "kind": "test",
+      "status": "passed",
+      "detail": "Essayés dans une copie temporaire de la branche de corrections, puis jetés : tests 13, pass 13, fail 0. Rien de tout cela n'est appliqué sur une branche."
+    },
+    {
+      "label": "Valeurs citées pour R-001, R-004 et R-005",
+      "kind": "inspection",
+      "status": "observed",
+      "detail": "Fonctions exécutées directement en copie temporaire : {\"id\":2,\"totalCents\":3998}, TypeError, NaN, -500, 1100, 15 et 14."
+    },
+    {
+      "label": "Garde-fou de fix-finding",
+      "kind": "inspection",
+      "status": "observed",
+      "detail": ".review-worktrees/.guard.log contient 8 entrées Bash allow, aucune entrée Edit ou Write, aucun refus."
+    },
+    {
+      "label": "Branches relues inchangées",
+      "kind": "inspection",
+      "status": "observed",
+      "detail": "Après corrections, feature/orders-list reste sur 8ad162e et main sur fac7f15, et le dépôt principal est sans modification."
+    }
+  ],
+  "limitations": [
+    "Les deux agents fix-finding ont modifié les fichiers uniquement par Bash. Le hook confine les chemins d'Edit et de Write, mais pas les écritures par Bash : ce confinement n'a donc pas été exercé. Le contrôle a posteriori (branches relues inchangées, dépôt principal propre) ne montre aucune écriture hors du worktree dans le dépôt.",
+    "Aucun énoncé de besoin n'était fourni hors du contrat api.md et du périmètre : le comportement attendu en a été déduit, sans besoin inventé.",
+    "Le dépôt ne contient ni route ni couche HTTP : un contrôle situé hors du dépôt ne pouvait pas être vu.",
+    "review-behavior avait marqué R-004 et R-005 comme sensibles (montant facturable). L'orchestrateur les a classés hors zone sensible car le code ne contient aucun paiement, d'où le motif business_ambiguity. Sans effet sur le traitement : aucun des deux n'a été corrigé.",
+    "Fusion de doublons : T-1 dans R-001, T-3 dans R-002 et R-003, T-4 dans R-002, T-6 dans R-005. L'orchestrateur a abaissé R-006 et R-007 de P2 à P3, car aucun défaut actuel n'est établi.",
+    "Les modèles observés proviennent des journaux de requêtes de la session (enregistrements api-request et assistant), pas d'une déclaration des agents.",
+    "Une liste de constats ne certifie pas l'absence d'autres défauts."
+  ]
+}

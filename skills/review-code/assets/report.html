@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} · Revue de code</title>
+<style>
+:root{--ink:#17292e;--muted:#566a70;--line:#dce4e2;--paper:#f4f6f2;--card:#fff;--soft:#edf2ee;--teal:#0f6a5b;--teal-soft:#e2f2ec;--amber:#8a5412;--amber-soft:#fdf2dd;--amber-line:#efc77d;--red:#a42e34;--red-soft:#fce9e8;--code:#16262b;--code-ink:#dbe7e3}
+@media(prefers-color-scheme:dark){:root{--ink:#e4ecea;--muted:#9db0ab;--line:#2f4044;--paper:#10191c;--card:#182428;--soft:#1e2c30;--teal:#5cc9b0;--teal-soft:#16322c;--amber:#eebb6b;--amber-soft:#33280f;--amber-line:#6d5120;--red:#f19a9d;--red-soft:#3a1d1f;--code:#0b1214}}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:64px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input{font:inherit}button{cursor:pointer}a{color:inherit}:focus-visible{outline:3px solid #d69a36;outline-offset:3px}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
+.skip{position:absolute;top:-100px}.skip:focus{top:10px;left:10px;background:#fff;color:#000;padding:10px;z-index:5}
+.demo{padding:9px 24px;text-align:center;background:#fff0d3;color:#704011;font-size:12px;font-weight:700;letter-spacing:.03em}
+header{background:#123a38;color:#f6fbf7;padding:30px max(24px,calc((100vw - 1120px)/2)) 34px}
+.eyebrow{font-size:12px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:#a9cfc1}
+h1{font-family:Georgia,serif;font-weight:400;font-size:clamp(30px,4vw,44px);line-height:1.15;letter-spacing:-.02em;margin:10px 0 12px}
+.headline{max-width:820px;font-size:18px;color:#dceae3;margin:0}.scope{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:20px;font-size:13px}.scope code{background:#22504a;padding:5px 10px;border-radius:5px;overflow-wrap:anywhere}
+.status{border:1px solid #7ba99a;border-radius:99px;padding:3px 12px;font-weight:600}.status.partial{background:#fff0d3;color:#704011;border-color:#fff0d3}
+nav{position:sticky;top:0;z-index:3;background:var(--card);border-bottom:1px solid var(--line);padding:0 max(24px,calc((100vw - 1120px)/2));display:flex;gap:4px;overflow-x:auto;font-size:14px}nav a{padding:12px 11px;text-decoration:none;white-space:nowrap;color:var(--muted);font-weight:550}nav a:hover{color:var(--ink)}nav b{color:var(--ink)}
+main{max-width:1168px;margin:auto;padding:26px 24px 56px}section{margin-bottom:40px}h2{font-size:23px;letter-spacing:-.02em;margin:0 0 4px}.sub{color:var(--muted);margin:0 0 16px;font-size:15px}h3{font-size:18px;line-height:1.35;margin:10px 0 8px;letter-spacing:-.01em}
+.flow{display:flex;align-items:stretch;gap:12px;margin-bottom:38px}.flow-start{flex:0 0 210px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px}.flow-arrow{align-self:center;font-size:24px;color:var(--muted)}.flow-ends{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.flow-step{background:var(--card);border:1px solid var(--line);border-top-width:4px;border-radius:10px;padding:13px 18px;text-decoration:none;display:block}.flow-step:hover{box-shadow:0 2px 10px #0002}.flow b{display:block;font-size:34px;line-height:1.1;font-weight:650}.flow span{display:block;font-weight:650}.flow small{display:block;color:var(--muted);font-size:13px;line-height:1.35}.flow-step.ok{border-top-color:var(--teal)}.flow-step.ok b{color:var(--teal)}.flow-step.todo{border-top-color:var(--amber);background:var(--amber-soft)}.flow-step.todo b{color:var(--amber)}.flow-step.off{border-top-color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin-bottom:14px;overflow-wrap:anywhere}.card.decision{border-left:5px solid var(--amber-line)}.card.fixed{border-left:5px solid var(--teal)}
+.card-top{display:flex;align-items:center;flex-wrap:wrap;gap:9px;font-size:13px;color:var(--muted)}.sev{border-radius:4px;padding:1px 7px;font-weight:700;font-size:12px;background:var(--soft)}.sev.P1{background:var(--red-soft);color:var(--red)}.sev.P2{background:var(--amber-soft);color:var(--amber)}.loc{color:var(--muted)}
+.why{display:inline-block;background:var(--amber-soft);color:var(--amber);border-radius:5px;padding:2px 9px;font-size:13px;font-weight:600;margin:0 0 10px}.question{font-size:17px;font-weight:600;margin:0 0 10px}
+.options{list-style:none;padding:0;margin:0 0 12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}.options li{border:1px solid var(--line);border-radius:8px;padding:10px 13px;font-size:15px}.options b,.options span{display:block}.options span{color:var(--muted);font-size:14px;line-height:1.45}.reco{background:var(--soft);border-radius:8px;padding:10px 13px;margin:0 0 10px;font-size:15px}.reco b{display:block;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.fix-summary{margin:0 0 12px}.proof{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}.term{margin:0;background:var(--code);color:var(--code-ink);border-radius:8px;overflow:hidden;min-width:0}.term figcaption{font-size:12px;font-weight:600;padding:6px 12px;background:#0003;color:#f3b4b0}.term+.term figcaption{color:#8fe0c3}.term pre{margin:0;padding:10px 12px;font:12.5px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;max-height:240px;overflow:auto}
+.commit{font-size:14px;color:var(--muted);margin:0 0 8px}details{border-top:1px solid var(--line);padding:8px 0 0;margin-top:8px}summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--teal)}
+.facts{margin:10px 0 0}.facts div{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:5px 0}.facts dt{color:var(--muted);font-size:14px}.facts dd{margin:0;font-size:15px}.prov{font-size:13px;color:var(--muted);margin:8px 0 2px}
+.diff{background:var(--code);color:var(--code-ink);padding:10px 0;border-radius:8px;overflow:auto;font:12.5px/1.5 ui-monospace,Menlo,monospace;margin:10px 0 4px}.diff span{display:block;padding:0 12px;white-space:pre}.diff .add{background:#1c4a3a;color:#c5f5df}.diff .del{background:#532327;color:#ffd6d3}.diff .hunk{color:#86a7a0}
+.table{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:10px}table{border-collapse:collapse;width:100%;font-size:15px}th,td{text-align:left;vertical-align:top;padding:11px 15px;border-bottom:1px solid var(--line)}thead th{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}tr:last-child>*{border-bottom:0}.watch{background:var(--amber-soft);border-radius:10px;padding:12px 18px;margin-top:12px;font-size:15px}.watch b{display:block}.watch ul{margin:4px 0 0;padding-left:20px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px}.toolbar input{flex:1;min-width:220px;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:7px;padding:8px 12px;font-size:14px}.filters{display:flex;gap:6px}.filters button{border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font-size:13px;padding:5px 12px}.filters button[aria-pressed=true]{background:var(--teal);border-color:var(--teal);color:var(--card)}
+.merge{background:var(--teal-soft);border-radius:10px;padding:14px 18px;font-size:15px;margin-bottom:14px}.merge p{margin:0 0 8px}.commands{list-style:none;padding:0;margin:0;display:grid;gap:7px}.commands li{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.commands span{flex:0 0 220px;font-size:14px;font-weight:600}.commands code{flex:1;min-width:240px;background:var(--code);color:var(--code-ink);padding:6px 10px;border-radius:6px;overflow-wrap:anywhere}.copy{border:1px solid var(--teal);background:transparent;color:var(--teal);border-radius:6px;font-size:12px;padding:4px 10px}
+.dismissed{list-style:none;margin:0;padding:0}.dismissed li{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:11px 15px;margin-bottom:8px;font-size:15px}.dismissed p{margin:3px 0 0;color:var(--muted);font-size:14px}
+.agents{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.agent{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px 17px;font-size:14px}.agent-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.agent h3{font-size:16px;margin:8px 0 4px}.agent p{margin:0 0 8px;color:var(--muted)}.pill{font-size:12px;border-radius:99px;padding:1px 9px;background:var(--teal-soft);color:var(--teal);font-weight:600}.pill.failed,.pill.not_run,.pill.partial{background:var(--amber-soft);color:var(--amber)}.models{margin:0;font-size:13px}.models dt{color:var(--muted)}.models dd{margin:0 0 4px;overflow-wrap:anywhere}.warn{color:var(--red)!important;font-weight:600}
+.columns{display:grid;grid-template-columns:1fr 1fr;gap:14px}.panel{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:15px 18px;font-size:14px}.panel h2{font-size:17px;margin-bottom:8px}.panel ul{list-style:none;padding:0;margin:0}.panel li+li{border-top:1px solid var(--line);margin-top:9px;padding-top:9px}.panel p{margin:2px 0 0;color:var(--muted);overflow-wrap:anywhere}.check-state{font-size:12px;font-weight:700;color:var(--teal);margin-right:6px}.check-state.failed,.check-state.not_run{color:var(--amber)}
+.empty{background:var(--soft);border-radius:8px;padding:15px 18px;color:var(--muted);margin:0}.muted{color:var(--muted)}footer{border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:13px}footer p{margin:0 0 3px}[hidden]{display:none!important}
+@media(max-width:820px){.flow{flex-direction:column}.flow-start{flex:auto}.flow-arrow{transform:rotate(90deg);align-self:flex-start;margin-left:20px}.flow-ends,.proof,.columns{grid-template-columns:1fr}.facts div{grid-template-columns:1fr;gap:0}.commands span{flex-basis:100%}}
+@media print{nav,.toolbar,.copy,.skip{display:none}header{background:#fff;color:#123a38;padding:0 0 12px}.headline,.eyebrow{color:#324f42}.scope code{background:#edf2ee}body{background:#fff}.card,.agent,.panel{break-inside:avoid}.diff span{white-space:pre-wrap}.term pre{max-height:none}}
+</style>
+</head>
+<body>
+<a class="skip" href="#report">Aller au rapport</a>
+{{DEMO}}
+<header>
+<div class="eyebrow">{{REPOSITORY}}</div>
+<h1>{{TITLE}}</h1>
+<p class="headline">{{HEADLINE}}</p>
+<div class="scope"><span class="status {{STATUS_CLASS}}">{{STATUS}}</span><code>{{SCOPE}}</code></div>
+</header>
+<nav aria-label="Sections du rapport"><a href="#decisions"><b>{{N_DECISIONS}}</b> à décider</a><a href="#changes">Ce qui change</a><a href="#fixes"><b>{{N_FIXES}}</b> corrigés</a><a href="#dismissed"><b>{{N_DISMISSED}}</b> écartés</a><a href="#agents">Agents et modèles</a><a href="#limits">Vérifications et limites</a></nav>
+<main id="report">
+{{PIPELINE}}
+<div class="toolbar"><input id="search" type="search" aria-label="Rechercher dans les constats" placeholder="Rechercher un fichier, un problème, une preuve…" autocomplete="off">
+<div class="filters" role="group" aria-label="Filtrer par priorité"><button type="button" data-filter="all" aria-pressed="true">Tous</button><button type="button" data-filter="P1" aria-pressed="false">P1</button><button type="button" data-filter="P2" aria-pressed="false">P2</button><button type="button" data-filter="P3" aria-pressed="false">P3</button></div></div>
+<section id="decisions"><h2>Ce que votre équipe doit décider</h2><p class="sub">Les agents n’ont pas tranché ces points : la preuve ou la responsabilité manque pour le faire à votre place.</p>{{DECISIONS}}</section>
+<section id="changes"><h2>Ce qui change dans le code</h2><p class="sub">{{AWARENESS}}</p>
+<div class="table"><table><thead><tr><th scope="col">Domaine</th><th scope="col">Avant</th><th scope="col">Après</th></tr></thead><tbody>{{CHANGES}}</tbody></table></div>
+<div class="watch"><b>À surveiller après l’intégration</b><ul>{{WATCH}}</ul></div></section>
+<section id="fixes"><h2>Ce que les agents ont corrigé</h2><p class="sub">Chaque correction part d’un test qui échoue, fait l’objet d’un commit dédié et a été relue par un autre agent que celui qui l’a écrite.</p><div class="merge">{{MERGE}}</div>{{FIXES}}</section>
+<section id="dismissed"><h2>Ce qui a été écarté</h2><p class="sub">Des constats proposés puis réfutés. Ils restent visibles pour que vous puissiez contester ce tri.</p><ul class="dismissed">{{DISMISSED}}</ul></section>
+<section id="agents"><h2>Agents et modèles</h2><p class="sub">Une analyse terminée n’est pas une approbation de fusion.</p><div class="agents">{{AGENTS}}</div></section>
+<section id="limits" class="columns"><div class="panel"><h2>Ce qui a été vérifié</h2><ul>{{CHECKS}}</ul></div><div class="panel"><h2>Limites de cette revue</h2><ul>{{LIMITATIONS}}</ul></div></section>
+<footer><p>Les constats doivent être examinés dans leur contexte ; l’absence de constat ne certifie pas l’absence de défauts.</p><p>Rapport autonome · aucune ressource externe · rendu à partir de données structurées</p></footer>
+</main>
+<script>
+const items = [...document.querySelectorAll('[data-search]')];
+const search = document.getElementById('search');
+const filters = [...document.querySelectorAll('[data-filter]')];
+let selected = 'all';
+const normalize = v => v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function apply() {
+  const query = normalize(search.value.trim());
+  items.forEach(item => {
+    item.hidden = !((selected === 'all' || item.dataset.severity === selected) && normalize(item.textContent).includes(query));
+  });
+}
+filters.forEach(button => button.addEventListener('click', () => {
+  selected = button.dataset.filter;
+  filters.forEach(other => other.setAttribute('aria-pressed', String(other === button)));
+  apply();
+}));
+search.addEventListener('input', apply);
+document.querySelectorAll('.copy').forEach(button => button.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(button.dataset.copy); button.textContent = 'Copié'; }
+  catch { button.textContent = 'Copie impossible'; }
+  setTimeout(() => { button.textContent = 'Copier'; }, 1500);
+}));
+addEventListener('beforeprint', () => document.querySelectorAll('details').forEach(d => { d.dataset.wasOpen = d.open; d.open = true; }));
+addEventListener('afterprint', () => document.querySelectorAll('details').forEach(d => { d.open = d.dataset.wasOpen === 'true'; }));
+</script>
+</body>
+</html>

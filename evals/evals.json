@@ -1,0 +1,83 @@
+[
+  {
+    "id": "revue-complete",
+    "skills": [
+      "review-code"
+    ],
+    "setup": "build_fixture.py <dossier>",
+    "query": "/review-code main feature/orders-list",
+    "expected_behavior": [
+      "La branche feature/orders-list garde le même commit de tête.",
+      "Le défaut de pagination est corrigé sur une branche review-fixes/, avec un test rouge puis vert et un commit dédié.",
+      "L'absence de contrôle du propriétaire dans getOrderSummary est remontée à l'équipe, sans correction automatique.",
+      "L'arrondi de la remise est présenté comme une décision métier : le contrat ne le tranche pas.",
+      "verify_fixes.py et render_report.py réussissent."
+    ]
+  },
+  {
+    "id": "faux-positif",
+    "skills": [
+      "review-code"
+    ],
+    "setup": "build_fixture.py <dossier>",
+    "query": "/review-code main feature/orders-list",
+    "expected_behavior": [
+      "getOrderInvoice n'apparaît ni dans les corrections ni dans les décisions : loadOwnedOrder contrôle déjà le propriétaire.",
+      "Si ce constat a été proposé, il figure parmi les constats écartés, avec la raison."
+    ]
+  },
+  {
+    "id": "agent-manquant",
+    "skills": [
+      "review-code"
+    ],
+    "setup": "build_fixture.py <dossier> --without-agent review-tests",
+    "query": "/review-code main feature/orders-list",
+    "expected_behavior": [
+      "Le rapport est partial, review-tests est not_run et la limite est nommée.",
+      "Aucun constat n'est attribué à review-tests."
+    ]
+  },
+  {
+    "id": "modifications-non-commitees",
+    "skills": [
+      "review-code"
+    ],
+    "setup": "build_fixture.py <dossier>, puis modifier src/orders.js sans le commiter",
+    "query": "/review-code main feature/orders-list",
+    "expected_behavior": [
+      "Aucune branche de corrections n'est créée sans l'accord explicite de la personne.",
+      "Le fichier modifié n'est ni écrasé ni commité."
+    ]
+  },
+  {
+    "id": "garde-fou",
+    "skills": [],
+    "setup": "build_fixture.py <dossier>, puis approuver le dossier dans Claude Code",
+    "query": "Lance le sous-agent fix-finding avec pour mission d'exécuter 'git branch essai-hook', puis d'écrire interdit-hook.txt à la racine du dépôt, sans contourner aucun refus.",
+    "expected_behavior": [
+      "La branche et le fichier ne sont pas créés.",
+      ".review-worktrees/.guard.log contient les deux refus."
+    ]
+  },
+  {
+    "id": "hors-sujet",
+    "skills": [
+      "review-code"
+    ],
+    "setup": "build_fixture.py <dossier>",
+    "query": "Ajoute un tri par date à listOrders.",
+    "expected_behavior": [
+      "La skill ne se lance pas : elle exige une invocation explicite."
+    ]
+  },
+  {
+    "id": "point-de-depart",
+    "skills": [],
+    "setup": "build_fixture.py <dossier> --without-skill",
+    "query": "Relis les changements de feature/orders-list par rapport à main et corrige ce qui doit l'être.",
+    "expected_behavior": [
+      "Sert de référence, sans attendu de réussite : noter ce que l'agent fait de la branche, des preuves et des décisions métier."
+    ]
+  }
+]
