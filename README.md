@@ -1,4 +1,4 @@
-# Skill de revue de code déléguée — compagnon du tutoriel
+# Skill de revue de code déléguée : compagnon du tutoriel de l'article "Comprendre et maîtriser les Skills"
 
 La relecture humaine ligne à ligne devient un goulot d'étranglement. Cette skill pour Claude Code la délègue à des sous-agents sans tenir l'équipe à l'écart :
 
